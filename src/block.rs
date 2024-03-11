@@ -1,6 +1,7 @@
 use std::time::{SystemTime};
 use anyhow::Result;
 use log::info;
+use sha2::{Sha256, Digest};
 
 pub struct Block {
     timestamp: u128, //The time when the block is created.
@@ -36,6 +37,19 @@ impl Block {
 
     fn run_proof_if_work(&mut self) -> Result<()> {
         info!("Mining the block");
+
+        // while !self.validate()? {
+        //     self.nonce += 1;
+        // }
+
+        let data: Vec<u8> = self.prepare_hash_data()?;
+        let mut hasher: Sha256 = Sha256::new();
+        hasher.update(&data[..]);
+        self.hash = format!("{:X}", hasher.finalize());
         Ok(())
+    }
+
+    fn prepare_hash_data(&mut self) -> Result<Vec<u8>> {
+        Ok(vec![8])
     }
 }
