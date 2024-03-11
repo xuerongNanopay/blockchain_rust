@@ -38,7 +38,7 @@ impl Block {
         Block::new(String::from("Genesis Block"), String::new(), 0).unwrap()
     }
 
-    pub fn new(data: String, prev_block_hash: String, height: usize) -> Result<Block> {
+    fn new(data: String, prev_block_hash: String, height: usize) -> Result<Block> {
         // let timestamp:u128 = System
         let timestamp: u128 = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)?
