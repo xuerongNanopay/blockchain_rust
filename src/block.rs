@@ -29,6 +29,11 @@ impl Block {
             height,
             nonce: 0,
         };
+        block.run_proof_if_work()?;
         Ok(block)
+    }
+
+    fn run_proof_if_work(&mut self) -> Result<()> {
+        Ok(())
     }
 }
