@@ -21,18 +21,23 @@ pub struct BlockChain {
 impl BlockChain {
     pub fn new() -> BlockChain {
         BlockChain {
-            blocks: vec![],
+            blocks: vec![Block::new_genesis_block()],
         }
     }
     pub fn add_block(&mut self, data: String) -> Result<()> {
         let prev = self.blocks.last().unwrap();
-        let new_block = Block::new(data, prev.hash.clone(), 11)?;
+        let new_block = Block::new(data, prev.hash.clone(), prev.height)?;
         self.blocks.push(new_block);
         Ok(())
     }
 }
 
 impl Block {
+
+    fn new_genesis_block() -> Block {
+        Block::new(String::from("Genesis Block"), String::new(), 0).unwrap()
+    }
+
     pub fn new(data: String, prev_block_hash: String, height: usize) -> Result<Block> {
         // let timestamp:u128 = System
         let timestamp: u128 = SystemTime::now()
