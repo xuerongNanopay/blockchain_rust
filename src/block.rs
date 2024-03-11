@@ -3,8 +3,10 @@ use anyhow::Result;
 use log::info;
 use sha2::{Sha256, Digest};
 
-const TARGET_HEXT: usize = 4;
+// Difficulty for mining.
+const TARGET_HEXT: usize = 2;
 
+#[derive(Debug,Clone)]
 pub struct Block {
     timestamp: u128, //The time when the block is created.
     transactions: String, //TODO: string as placeholder
@@ -14,6 +16,7 @@ pub struct Block {
     nonce: i32, //For difficulty in Proof of Work
 }
 
+#[derive(Debug)]
 pub struct BlockChain {
     blocks: Vec<Block>
 }
@@ -79,7 +82,6 @@ impl Block {
         // Dummy PoW
         let mut vec1: Vec<u8> = vec![];
         vec1.resize(TARGET_HEXT, '0' as u8);
-        println!("{:?}", vec1);
 
         //Compare hash.
         Ok(&hasher.finalize()[0..TARGET_HEXT] == &vec1[0..TARGET_HEXT])
@@ -95,5 +97,17 @@ impl Block {
         );
         let bytes: Vec<u8> = bincode::serialize(&content)?;
         Ok(bytes)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_blockchain() {
+        let mut block_chain = BlockChain::new();
+        block_chain.add_block("data".to_string());
+        dbg!(block_chain);
     }
 }
