@@ -40,6 +40,7 @@ impl Block {
     fn run_proof_if_work(&mut self) -> Result<()> {
         info!("Mining the block");
 
+        // This is the place need power machine.
         while !self.validate()? {
             self.nonce += 1;
         }
