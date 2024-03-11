@@ -1,5 +1,6 @@
 use std::time::{SystemTime};
 use anyhow::Result;
+use log::info;
 
 pub struct Block {
     timestamp: u128, //The time when the block is created.
@@ -34,6 +35,7 @@ impl Block {
     }
 
     fn run_proof_if_work(&mut self) -> Result<()> {
+        info!("Mining the block");
         Ok(())
     }
 }
