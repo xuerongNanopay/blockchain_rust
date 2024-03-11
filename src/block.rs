@@ -18,6 +18,20 @@ pub struct BlockChain {
     blocks: Vec<Block>
 }
 
+impl BlockChain {
+    pub fn new() -> BlockChain {
+        BlockChain {
+            blocks: vec![],
+        }
+    }
+    pub fn add_block(&mut self, data: String) -> Result<()> {
+        let prev = self.blocks.last().unwrap();
+        let new_block = Block::new(data, prev.hash.clone(), 11)?;
+        self.blocks.push(new_block);
+        Ok(())
+    }
+}
+
 impl Block {
     pub fn new(data: String, prev_block_hash: String, height: usize) -> Result<Block> {
         // let timestamp:u128 = System
