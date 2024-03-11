@@ -38,9 +38,9 @@ impl Block {
     fn run_proof_if_work(&mut self) -> Result<()> {
         info!("Mining the block");
 
-        // while !self.validate()? {
-        //     self.nonce += 1;
-        // }
+        while !self.validate()? {
+            self.nonce += 1;
+        }
 
         let data: Vec<u8> = self.prepare_hash_data()?;
         let mut hasher: Sha256 = Sha256::new();
@@ -49,7 +49,19 @@ impl Block {
         Ok(())
     }
 
+    fn validate(&self) -> Result<bool> {
+        Ok(true)
+    }
+
+    // Decide the properties that needs include in the hash.
     fn prepare_hash_data(&mut self) -> Result<Vec<u8>> {
-        Ok(vec![8])
+        let content = (
+            self.prev_block_hash.clone(),
+            self.transactions.clone(),
+            self.timestamp,
+            self.nonce
+        );
+        let bytes: Vec<u8> = bincode::serialize(&content)?;
+        Ok(bytes)
     }
 }
