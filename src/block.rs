@@ -36,11 +36,15 @@ impl BlockChain {
 
 impl Block {
 
-    fn new_genesis_block() -> Block {
+    pub fn get_hash(&self) -> String {
+        return self.hash.clone();
+    }
+
+    pub fn new_genesis_block() -> Block {
         Block::new(String::from("Genesis Block"), String::new(), 0).unwrap()
     }
 
-    fn new(data: String, prev_block_hash: String, height: usize) -> Result<Block> {
+    pub fn new(data: String, prev_block_hash: String, height: usize) -> Result<Block> {
         // let timestamp:u128 = System
         let timestamp: u128 = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)?
@@ -96,17 +100,5 @@ impl Block {
         );
         let bytes: Vec<u8> = bincode::serialize(&content)?;
         Ok(bytes)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_blockchain() {
-        let mut block_chain = BlockChain::new();
-        block_chain.add_block("data".to_string());
-        dbg!(block_chain);
     }
 }
