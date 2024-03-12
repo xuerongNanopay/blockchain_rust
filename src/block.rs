@@ -1,9 +1,8 @@
 use std::time::{SystemTime};
-use anyhow::Result;
 use log::info;
 use sha2::{Sha256, Digest};
+use crate::errors::Result;
 
-// Difficulty for mining.
 const TARGET_HEXT: usize = 2;
 
 #[derive(Debug,Clone)]
