@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use sha2::{Sha256, Digest};
 use crate::errors::Result;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -26,10 +27,28 @@ impl Transaction {
         if data == "" {
             data += &format!("Reward to `{}`", to);
         }
-        Ok(Transaction {
-            id: String::from("aaa"),
-            vin: vec![],
-            vout: vec![],
-        })
+
+        let mut tx = Transaction {
+            id: String::new(),
+            vin: vec![TXInput {
+                txid: String::new(),
+                vout: -1,
+                script_sig: data,
+            }],
+            vout: vec![TXOutput {
+                value: 100,
+                script_pub_key: to,
+            }],
+        };
+        tx.set_id()?;
+        Ok(tx)
+    }
+
+    fn set_id(&mut self) -> Result<()> {
+        let mut hasher = Sha256::new();
+        let data = bincode::serialize(self)?;
+        hasher.update(&data[..]);
+        self.id = format!("{:X}", hasher.finalize());
+        Ok(())
     }
 }
