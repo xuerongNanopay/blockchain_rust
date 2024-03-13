@@ -3,6 +3,12 @@ mod errors;
 mod blockchain;
 mod cli;
 
-fn main() {
-    println!("Hello, world!");
+use errors::Result;
+use cli::Cli;
+
+fn main() -> Result<()> {
+    let mut cli = Cli::new()?;
+    cli.run()?;
+    
+    Ok(())
 }
