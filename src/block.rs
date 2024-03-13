@@ -15,29 +15,14 @@ pub struct Block {
     nonce: i32, //For difficulty in Proof of Work
 }
 
-#[derive(Debug)]
-pub struct BlockChain {
-    blocks: Vec<Block>
-}
-
-impl BlockChain {
-    pub fn new() -> BlockChain {
-        BlockChain {
-            blocks: vec![Block::new_genesis_block()],
-        }
-    }
-    pub fn add_block(&mut self, data: String) -> Result<()> {
-        let prev = self.blocks.last().unwrap();
-        let new_block = Block::new(data, prev.hash.clone(), prev.height)?;
-        self.blocks.push(new_block);
-        Ok(())
-    }
-}
-
 impl Block {
 
     pub fn get_hash(&self) -> String {
         return self.hash.clone();
+    }
+
+    pub fn get_prev_block_hash(&self) -> String {
+        return self.prev_block_hash.clone();
     }
 
     pub fn new_genesis_block() -> Block {
