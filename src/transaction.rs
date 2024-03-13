@@ -51,4 +51,20 @@ impl Transaction {
         self.id = format!("{:X}", hasher.finalize());
         Ok(())
     }
+
+    pub fn is_coinbase(&self) -> bool {
+        self.vin.len() == 1 && self.vin[0].txid.is_empty() && self.vin[0].vout == -1
+    }
+}
+
+impl TXInput {
+    pub fn can_unlock_output_with(&self, unlocking_data: &str) -> bool {
+        self.script_sig == unlocking_data
+    }
+}
+
+impl TXOutput {
+    pub fn can_be_unlock_with(&self, unlocking_data: &str) -> bool {
+        self.script_pub_key == unlocking_data
+    }
 }
