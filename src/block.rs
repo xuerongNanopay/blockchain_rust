@@ -2,10 +2,11 @@ use std::time::{SystemTime};
 use log::info;
 use sha2::{Sha256, Digest};
 use crate::errors::Result;
+use serde::{Serialize, Deserialize};
 
 const TARGET_HEXT: usize = 2;
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct Block {
     timestamp: u128, //The time when the block is created.
     transactions: String, //TODO: string as placeholder

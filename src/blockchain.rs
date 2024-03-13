@@ -1,6 +1,8 @@
 use crate::errors::Result;
 use crate::block::Block;
 
+const TARGET_HEXT: usize = 2;
+
 #[derive(Debug)]
 pub struct BlockChain {
     current_hash: String,
@@ -44,7 +46,7 @@ impl BlockChain {
         let last_hash = self.db.get("LAST")?.unwrap();
 
         //TODO: check to_vec method.
-        let new_block = Block::new(data, String::from_utf8(last_hash.to_vec())?, 11)?; 
+        let new_block = Block::new(data, String::from_utf8(last_hash.to_vec())?, TARGET_HEXT)?; 
         self.db.insert(new_block.get_hash(), bincode::serialize(&new_block)?)?;
         self.db.insert("LAST", new_block.get_hash().as_bytes())?;
         self.current_hash = new_block.get_hash();
