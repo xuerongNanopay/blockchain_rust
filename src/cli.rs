@@ -40,4 +40,14 @@ impl Cli {
 
         Ok(())
     }
+
+    fn add_block(&mut self, data: String) -> Result<()> {
+        self.bc.add_block(data)
+    }
+
+    fn print_chain(&self) {
+        for b in self.bc.iter() {
+            println!("Block: {:#?}", b);
+        }
+    }
 }
