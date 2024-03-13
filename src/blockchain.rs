@@ -73,7 +73,7 @@ impl Blockchain {
         }
     }
 
-    // return a list of transactions contains unspent outputs.
+    // return a list of transactions contains unspent outputs associate with input address.
     fn find_unspent_transactions(&self, address: &str) -> Vec<Transaction> {
         // key: transaction id. value: index of vout
         let mut spend_TXOs: HashMap<String, Vec<i32>> = HashMap::new();
@@ -118,9 +118,9 @@ impl Blockchain {
     }
 
     // finds and returns all unspent transactions outputs.
-    pub fn find_UTXO(&self, address: &str) -> Vec<TXOutput> {
-        let mut utxo = Vec::<TXOutput>::new();
-    }
+    // pub fn find_UTXO(&self, address: &str) -> Vec<TXOutput> {
+    //     let mut utxo = Vec::<TXOutput>::new();
+    // }
 
     // pub fn new() -> Result<Blockchain> {
     //     let db = sled::open("data/blocks")?;
