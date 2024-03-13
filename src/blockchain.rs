@@ -88,7 +88,7 @@ mod tests {
     
     #[test]
     fn test_blockchain() {
-        let mut block_chain = BlockChain::new();
+        let mut block_chain = BlockChain::new().unwrap();
         block_chain.add_block("data".to_string());
         dbg!(block_chain);
     }
