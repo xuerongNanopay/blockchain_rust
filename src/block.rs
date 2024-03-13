@@ -2,6 +2,7 @@ use std::time::{SystemTime};
 use log::info;
 use sha2::{Sha256, Digest};
 use crate::errors::Result;
+use crate::transaction::Transaction;
 use serde::{Serialize, Deserialize};
 
 const TARGET_HEXT: usize = 2;
@@ -9,7 +10,7 @@ const TARGET_HEXT: usize = 2;
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct Block {
     timestamp: u128, //The time when the block is created.
-    transactions: String, //TODO: string as placeholder
+    transactions: Vec<Transaction>, //TODO: string as placeholder
     prev_block_hash: String,
     hash: String,
     height: usize,
@@ -17,6 +18,10 @@ pub struct Block {
 }
 
 impl Block {
+
+    pub fn get_transactions(&self) -> &Vec<Transaction> {
+        &self.transactions
+    }
 
     pub fn get_hash(&self) -> String {
         return self.hash.clone();
@@ -26,11 +31,11 @@ impl Block {
         return self.prev_block_hash.clone();
     }
 
-    pub fn new_genesis_block() -> Block {
-        Block::new(String::from("Genesis Block"), String::new(), 0).unwrap()
+    pub fn new_genesis_block(coinbase: Transaction) -> Block {
+        Block::new(vec![coinbase], String::new(), 0).unwrap()
     }
 
-    pub fn new(data: String, prev_block_hash: String, height: usize) -> Result<Block> {
+    pub fn new(data: Vec<Transaction>, prev_block_hash: String, height: usize) -> Result<Block> {
         // let timestamp:u128 = System
         let timestamp: u128 = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)?

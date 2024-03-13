@@ -52,6 +52,8 @@ impl Transaction {
         Ok(())
     }
 
+    // If a transaction has only one vin, and its txid is empty and vout == -1,
+    // then this transaction is a coinbase transaction.
     pub fn is_coinbase(&self) -> bool {
         self.vin.len() == 1 && self.vin[0].txid.is_empty() && self.vin[0].vout == -1
     }

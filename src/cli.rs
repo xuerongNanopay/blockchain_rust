@@ -1,15 +1,15 @@
-use crate::blockchain::BlockChain;
+use crate::blockchain::Blockchain;
 use crate::errors::Result;
 use clap::{ Command, arg };
 
 pub struct Cli {
-    bc: BlockChain
+    bc: Blockchain
 }
 
 impl Cli {
     pub fn new() -> Result<Cli> {
         Ok(Cli {
-            bc: BlockChain::new()?,
+            bc: Blockchain::new()?,
         })
     }
     
