@@ -54,12 +54,12 @@ impl Blockchain {
         Ok(bc)
     }
 
-    pub fn add_block(&mut self, data: String) -> Result<()> {
+    pub fn add_block(&mut self, transactions: Vec<Transaction>) -> Result<()> {
         //TODO: what is the height of block chain.
         let last_hash = self.db.get("LAST")?.unwrap();
 
         //TODO: check to_vec method.
-        let new_block = Block::new(data, String::from_utf8(last_hash.to_vec())?, TARGET_HEXT)?; 
+        let new_block = Block::new(transactions, String::from_utf8(last_hash.to_vec())?, TARGET_HEXT)?; 
         self.db.insert(new_block.get_hash(), bincode::serialize(&new_block)?)?;
         self.db.insert("LAST", new_block.get_hash().as_bytes())?;
         self.current_hash = new_block.get_hash();
