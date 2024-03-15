@@ -85,4 +85,28 @@ impl Wallets {
         info!("Create wallet: {}", address);
         address
     }
+
+    pub fn get_all_address(&self) -> Vec<String> {
+        let mut addresses = Vec::new();
+        for (address, _) in &self.wallets {
+            addresses.push(address.clone())
+        }
+        addresses
+    }
+
+    pub fn get_wallet(&self, address: &str) -> Option<&Wallet> {
+        self.wallets.get(address)
+    }
+
+    pub fn save_all(&self) -> Result<()> {
+        let db = sled::open("data/wallets")?;
+
+        for (address, wallet) in &self.wallets {
+            let data = bincode::serialize(wallet)?;
+            db.insert(address, data)?;
+        }
+        db.flush()?;
+        drop(db);
+        Ok(())
+    }
 }
