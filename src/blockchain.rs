@@ -3,7 +3,7 @@ use log::info;
 
 use crate::errors::Result;
 use crate::block::Block;
-use crate::transaction::Transaction;
+use crate::transaction::{Transaction, TXOutput};
 
 const TARGET_HEXT: usize = 2;
 const DB_NAME: &str = "data/blocks";
@@ -73,6 +73,7 @@ impl Blockchain {
         }
     }
 
+    // This is how blockchain find balance of an address.
     // return a list of transactions contains unspent outputs associate with input address.
     fn find_unspent_transactions(&self, address: &str) -> Vec<Transaction> {
         // key: transaction id. value: index of vout
@@ -117,10 +118,35 @@ impl Blockchain {
         unspend_TXs
     }
 
-    // finds and returns all unspent transactions outputs.
-    // pub fn find_UTXO(&self, address: &str) -> Vec<TXOutput> {
-    //     let mut utxo = Vec::<TXOutput>::new();
-    // }
+    // Find and return all unspend transaction outputs with associate address.
+    pub fn find_UTXO(&self, address: &str) -> Vec<TXOutput> {
+        let mut utxos = Vec::<TXOutput>::new();
+        let unspend_TXs = self.find_unspent_transactions(address);
+
+        for tx in unspend_TXs {
+            for out in tx.vout {
+                if out.can_be_unlock_with(address) {
+                    utxos.push(out);
+                }
+            }
+        }
+        utxos
+    }
+
+    pub fn find_spendable_outputs(
+        &self,
+        address: &str,
+        amount: i32,
+    ) -> (i32, HashMap<String, Vec<i32>>) {
+        let mut unspend_outputs: HashMap<String, Vec<i32>> = HashMap::new();
+        let mut accumulated = 0;
+        let unspend_TXs = self.find_unspent_transactions(address);
+
+
+        return unspend_outputs
+    }
+
+    // find 
 
     // pub fn new() -> Result<Blockchain> {
     //     let db = sled::open("data/blocks")?;
