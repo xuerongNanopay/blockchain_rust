@@ -9,6 +9,10 @@ use rand::RngCore;
 use rand::rngs::OsRng;
 use serde::{Serialize, Deserialize};
 
+use std::collections::HashMap;
+
+use crate::errors::Result;
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Wallet {
     pub secret_key: Vec<u8>,
@@ -16,7 +20,7 @@ pub struct Wallet {
 }
 
 impl Wallet {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let mut key: [u8; 32] = [0; 32];
         OsRng.fill_bytes(&mut key);
         let (secret_key, public_key) = ed25519::keypair(&key);
@@ -27,9 +31,9 @@ impl Wallet {
     }
 
     // Example of generate address from Wallet
-    fn get_address(&self) -> String {
+    pub fn get_address(&self) -> String {
         let mut pub_hash = self.public_key.clone();
-        // hash_pub_key(&mut pub_hash);
+        hash_pub_key(&mut pub_hash);
 
         let address = Address {
             body: pub_hash,
@@ -39,5 +43,37 @@ impl Wallet {
         };
 
         address.encode().unwrap()
+    }
+}
+
+pub fn hash_pub_key(pub_key: &mut Vec<u8>) {
+    let mut hasher1 = Sha256::new();
+    hasher1.input(pub_key);
+    hasher1.result(pub_key);
+    let mut hasher2 = Ripemd160::new();
+    hasher2.input(pub_key);
+    pub_key.resize(20, 0);
+    hasher2.result(pub_key);
+}
+
+pub struct Wallets {
+    wallets: HashMap<String, Wallet>,
+}
+
+impl Wallets {
+    pub fn new() -> Result<Wallets> {
+        let mut wlt = Wallets {
+            wallets: HashMap::<String, Wallet>::new(),
+        };
+
+        let db = sled::open("data/wallets")?;
+        for item in db.into_iter() {
+            let i = item?;
+            let address = String::from_utf8(i.0.to_vec())?;
+            let wallet = bincode::deserialize(&i.1.to_vec())?;
+            wlt.wallets.insert(address, wallet);
+        }
+
+        Ok(wlt)
     }
 }
