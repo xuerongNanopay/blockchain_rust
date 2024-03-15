@@ -3,7 +3,8 @@ use log::info;
 
 use crate::errors::Result;
 use crate::block::Block;
-use crate::transaction::{Transaction, TXOutput};
+use crate::transaction::{Transaction};
+use crate::tx::TXOutput;
 
 const TARGET_HEXT: usize = 2;
 const DB_NAME: &str = "data/blocks";

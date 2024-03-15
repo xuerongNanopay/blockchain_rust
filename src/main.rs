@@ -3,6 +3,7 @@ mod errors;
 mod blockchain;
 mod cli;
 mod transaction;
+mod tx;
 
 use errors::Result;
 use cli::Cli;
