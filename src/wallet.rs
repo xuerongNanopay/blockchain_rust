@@ -8,7 +8,7 @@ use bitcoincash_addr::{Address, HashType, Scheme};
 use rand::RngCore;
 use rand::rngs::OsRng;
 use serde::{Serialize, Deserialize};
-
+use log::info;
 use std::collections::HashMap;
 
 use crate::errors::Result;
@@ -73,7 +73,16 @@ impl Wallets {
             let wallet = bincode::deserialize(&i.1.to_vec())?;
             wlt.wallets.insert(address, wallet);
         }
-
+        //manual drop the db struct.
+        drop(db);
         Ok(wlt)
+    }
+
+    pub fn create_wallet(&mut self) -> String {
+        let wallet = Wallet::new();
+        let address = wallet.get_address();
+        self.wallets.insert(address.clone(), wallet);
+        info!("Create wallet: {}", address);
+        address
     }
 }
