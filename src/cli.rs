@@ -1,5 +1,6 @@
 use crate::blockchain::Blockchain;
 use crate::errors::Result;
+use crate::wallet::Wallets;
 use crate::transaction::Transaction;
 use clap::{ Command, arg };
 use std::process::exit;
@@ -38,6 +39,14 @@ impl Cli {
                     .arg(arg!(<FROM>" 'Source wallet address'"))
                     .arg(arg!(<TO> " 'Destination wallet address'"))
                     .arg(arg!(<AMOUNT> " 'Amount to send'"))
+            )
+            .subcommand(
+                Command::new("create-wallet")
+                    .about("create a wallet")
+            )
+            .subcommand(
+                Command::new("list-addresses")
+                    .about("list all addresses")
             )
             .get_matches();
 
@@ -90,10 +99,26 @@ impl Cli {
             println!("success!");
         }
 
-        if let Some(_)  = matches.subcommand_matches("print-chain") {
+        if let Some(_) = matches.subcommand_matches("print-chain") {
             let bc = Blockchain::new()?;
             for b in bc.iter() {
                 println!("Block: {:#?}", b);
+            }
+        }
+
+        if let Some(_) = matches.subcommand_matches("create-wallet") {
+            let mut ws = Wallets::new()?;
+            let address = ws.create_wallet();
+            ws.save_all()?;
+            println!("Wallet create successed with address `{}`", address);
+        }
+
+        if let Some(_) = matches.subcommand_matches("list-addresses") {
+            let ws = Wallets::new()?;
+            let addresses = ws.get_all_address();
+            println!("addresses: ");
+            for ad in addresses {
+                println!("{}", ad);
             }
         }
 
