@@ -133,6 +133,8 @@ impl Blockchain {
         utxos
     }
 
+    // Accumulate Balance.
+    // (amount, {transactionId, [index of TXOutput]})
     pub fn find_spendable_outputs(
         &self,
         address: &str,
@@ -142,8 +144,25 @@ impl Blockchain {
         let mut accumulated = 0;
         let unspend_TXs = self.find_unspent_transactions(address);
 
+        for tx in unspend_TXs {
+            for index in 0..tx.vout.len() {
+                if tx.vout[index].can_be_unlock_with(address) && accumulated < amount {
+                    match unspend_outputs.get_mut(&tx.id) {
+                        Some(v) => v.push(index as i32),
+                        None => {
+                            unspend_outputs.insert(tx.id.clone(), vec![index as i32]);
+                        }
+                    }
+                    accumulated += tx.vout[index].value;
 
-        return unspend_outputs
+                    if accumulated >= amount {
+                        return (accumulated, unspend_outputs)
+                    }
+                }
+            }
+        }
+
+        (accumulated, unspend_outputs)
     }
 
     // find 
