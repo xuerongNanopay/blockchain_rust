@@ -1,6 +1,8 @@
 use crate::blockchain::Blockchain;
 use crate::errors::Result;
+use crate::transaction::Transaction;
 use clap::{ Command, arg };
+use std::process::exit;
 
 pub struct Cli {
 }
@@ -40,7 +42,7 @@ impl Cli {
             .get_matches();
 
         if let Some(ref matches) = matches.subcommand_matches("create") {
-            if let Some(address) = matches.get_one::<String>("Address") {
+            if let Some(address) = matches.get_one::<String>("ADDRESS") {
                 Blockchain::create_blockchain(String::from(address))?;
                 println!("create blockchain");
             }
@@ -58,6 +60,34 @@ impl Cli {
                 }
                 println!("Balance of `{}`; {}", address, balance)
             }
+        }
+
+        if let Some(ref matches) = matches.subcommand_matches("send") {
+            let from = if let Some(address) = matches.get_one::<String>("FROM") {
+                address
+            } else {
+                println!("`from` not supply!: usage");
+                exit(1)
+            };
+
+            let to = if let Some(address) = matches.get_one::<String>("TO") {
+                address
+            } else {
+                println!("`to` not supply!: usage");
+                exit(1)
+            };
+
+            let amount: i32 = if let Some(amount) = matches.get_one::<String>("AMOUNT") {
+                amount.parse()?
+            } else {
+                println!("`amount` no supply!: usage");
+                exit(1)
+            };
+
+            let mut bc = Blockchain::new()?;
+            let tx = Transaction::new_UTXO(from, to, amount, &bc)?;
+            bc.add_block(vec![tx])?;
+            println!("success!");
         }
 
         if let Some(_)  = matches.subcommand_matches("print-chain") {
