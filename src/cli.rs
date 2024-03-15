@@ -42,7 +42,8 @@ impl Cli {
     }
 
     fn add_block(&mut self, data: String) -> Result<()> {
-        self.bc.add_block(data)
+        //TODO: fix.
+        self.bc.add_block(vec![])
     }
 
     fn print_chain(&self) {
