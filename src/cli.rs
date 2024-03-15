@@ -91,15 +91,12 @@ impl Cli {
         }
 
         if let Some(_)  = matches.subcommand_matches("print-chain") {
-            // self.print_chain();
+            let bc = Blockchain::new()?;
+            for b in bc.iter() {
+                println!("Block: {:#?}", b);
+            }
         }
 
         Ok(())
     }
-
-    // fn print_chain(&self) {
-    //     for b in self.bc.iter() {
-    //         println!("Block: {:#?}", b);
-    //     }
-    // }
 }
