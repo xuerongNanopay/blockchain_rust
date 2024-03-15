@@ -4,6 +4,7 @@ mod blockchain;
 mod cli;
 mod transaction;
 mod tx;
+mod wallet;
 
 use errors::Result;
 use cli::Cli;
