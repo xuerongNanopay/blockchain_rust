@@ -41,9 +41,22 @@ impl Cli {
 
         if let Some(ref matches) = matches.subcommand_matches("create") {
             if let Some(address) = matches.get_one::<String>("Address") {
-                let address = String::from(address);
-                Blockchain::create_blockchain(address)?;
+                Blockchain::create_blockchain(String::from(address))?;
                 println!("create blockchain");
+            }
+        }
+
+        if let Some(ref matches) = matches.subcommand_matches("get-balance") {
+            if let Some(address) = matches.get_one::<String>("ADDRESS") {
+                let address = String::from(address);
+                let bc = Blockchain::new()?;
+                let utxos = bc.find_UTXO(&address);
+                let mut balance = 0;
+
+                for out in utxos {
+                    balance += out.value;
+                }
+                println!("Balance of `{}`; {}", address, balance)
             }
         }
 

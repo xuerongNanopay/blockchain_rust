@@ -25,6 +25,7 @@ pub struct TXOutput {
 }
 
 impl Transaction {
+    // Mining
     pub fn new_coinbase(to: String, mut data: String) -> Result<Transaction> {
         if data == "" {
             data += &format!("Reward to `{}`", to);
