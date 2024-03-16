@@ -1,9 +1,12 @@
 use serde::{Serialize, Deserialize};
 use sha2::{Sha256, Digest};
+use log::error;
+use std::collections::HashMap;
+use crypto::ed25519;
+
 use crate::errors::Result;
 use crate::blockchain::Blockchain;
 use crate::tx::{TXInput, TXOutput};
-use log::error;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Transaction {
@@ -74,6 +77,69 @@ impl Transaction {
         };
         tx.set_id()?;
         Ok(tx)
+    }
+
+    // Create/Copy the transaction with signature set.
+    // You need to understand what need to include in the signature.
+    pub fn sign(
+        &mut self,
+        private_key: &[u8],
+        prev_TXs: HashMap<String, Transaction>,
+    ) -> Result<()> {
+        if self.is_coinbase() {
+            return Ok(());
+        }
+        
+        //THINK: Why do we need this check?
+        for vin in &self.vin {
+            if prev_Txs.get(&vin.txid).unwrap().id.is_empty() {
+                anyhow::bail!("ERROR: Previous transaction is not correct")
+            }
+        }
+
+        let mut tx_copy = self.trim_copy();
+
+        for idx in 0..tx_copy.vin.len() {
+            let prev_Tx = prevTXs.get(&tx_copy.vin[idx].txid).unwrap();
+            tx_copy.vin[idx].signature.clear();
+            //Copy corresponding output.
+            tx_copy.vin[idx].pub_key = pre_Tx.vout[tx_copy.vin[idx].vout as usize]
+                .pub_key_hash
+                .clone();
+            
+            tx_copy.id = tx_copy.hash()?;
+            tx_copy.vin[idx].pub_key = Vec::new();
+            let signature = 
+        }
+
+        Ok(())
+    }
+
+    fn trim_copy(&self) -> Transaction {
+        let mut vin = Vec::new();
+        let mut vout = Vec::new();
+
+        for i in &self.vin {
+            vin.push(TXInput {
+                txid: i.txid.clone(),
+                vout: i.vout,
+                signature: Vec::new(),
+                pub_key: Vec::new(),
+            })
+        }
+
+        for v in &self.vout {
+            vout.push(TXOutput {
+                value: v.value,
+                pub_key_hash: v.pub_key_hash.clone(),
+            })
+        }
+
+        Transaction {
+            id: self.id.clone(),
+            vin,
+            vout,
+        }
     }
 
     fn set_id(&mut self) -> Result<()> {
