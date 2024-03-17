@@ -92,6 +92,7 @@ impl Transaction {
             vout,
         };
         tx.set_id()?;
+        bc.sign_transaction(&mut tx, &wallet.secret_key)?;
         Ok(tx)
     }
 
@@ -127,7 +128,7 @@ impl Transaction {
             tx_copy.id = tx_copy.hash()?;
             //Why reset?
             tx_copy.vin[idx].pub_key = Vec::new();
-            let signature = ed25519::signature(tx_copy.id.as_bytes(), &vec![1 as u8]);
+            let signature = ed25519::signature(tx_copy.id.as_bytes(), private_key);
             self.vin[idx].signature = signature.to_vec()
         }
 
