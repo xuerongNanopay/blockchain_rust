@@ -76,7 +76,7 @@ impl Blockchain {
 
     // This is how blockchain find balance of an address.
     // return a list of transactions contains unspent outputs associate with input address.
-    fn find_unspent_transactions(&self, address: &str) -> Vec<Transaction> {
+    fn find_unspent_transactions(&self, address: &[u8]) -> Vec<Transaction> {
         // key: transaction id. value: index of vout
         let mut spend_TXOs: HashMap<String, Vec<i32>> = HashMap::new();
         let mut unspend_TXs: Vec<Transaction> = Vec::new();
@@ -120,7 +120,7 @@ impl Blockchain {
     }
 
     // Find and return all unspend transaction outputs with associate address.
-    pub fn find_UTXO(&self, address: &str) -> Vec<TXOutput> {
+    pub fn find_UTXO(&self, address: &[u8]) -> Vec<TXOutput> {
         let mut utxos = Vec::<TXOutput>::new();
         let unspend_TXs = self.find_unspent_transactions(address);
 
@@ -138,7 +138,7 @@ impl Blockchain {
     // (amount, {transactionId, [index of TXOutput]})
     pub fn find_spendable_outputs(
         &self,
-        address: &str,
+        address: &[u8],
         amount: i32,
     ) -> (i32, HashMap<String, Vec<i32>>) {
         let mut unspend_outputs: HashMap<String, Vec<i32>> = HashMap::new();
@@ -190,7 +190,7 @@ impl Blockchain {
     }
 
     // Return Map of associated previous transaction.
-    fn get_prev_TXs(&self, tx: &Transaction) -> Result<Hashmap<String, Transaction>> {
+    fn get_prev_TXs(&self, tx: &Transaction) -> Result<HashMap<String, Transaction>> {
         let mut prev_TXs = HashMap::new();
         for vin in &tx.vin {
             let prev_TX = self.find_transaction(&vin.txid)?;

@@ -2,7 +2,7 @@ use serde::{Serialize, Deserialize};
 use log::debug;
 use bitcoincash_addr::{Address};
 
-use crate::error:Result;
+use crate::errors::Result;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TXInput {
@@ -22,17 +22,22 @@ pub struct TXOutput {
     pub pub_key_hash: Vec<u8>
 }
 
-// impl TXInput {
-//     pub fn can_unlock_output_with(&self, unlocking_data: &str) -> bool {
-//         self.script_sig == unlocking_data
-//     }
+impl TXInput {
+    // checks whether the address initiated the transaction.
+    pub fn can_unlock_output_with(&self, unlocking_data: &[u8]) -> bool {
+        let mut pub_key_hash = self.pub_key.clone();
+        Wallet::hash_pub_key(pub_key_hash);
+        pub_key_hash == unlocking_data
+    }
     
-// }
+}
 
 impl TXOutput {
-    // pub fn can_be_unlock_with(&self, unlocking_data: &str) -> bool {
-    //     self.script_pub_key == unlocking_data
-    // }
+    // checks if the output can be unlocked with the provided data.
+    pub fn can_be_unlock_with(&self, unlocking_data: &[u8]) -> bool {
+        self.pub_key_hash == unlocking_data
+    }
+
     // Extract pub_key_hash from address and do assignment.
     fn lock(&mut self, address: &str) -> Result<()> {
         let pub_key_hash = Address::decode(address).unwrap().body;

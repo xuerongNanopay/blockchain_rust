@@ -21,7 +21,7 @@ Transaction:
     - 
 
 Thinks:
-  - Why do we need to hash the public key?
+  - Why do we need to hash the public key in TXOutput?
   - What does the signature include?
     - using the private_key to sign the transaction ID.
     - So what does transaction Id include

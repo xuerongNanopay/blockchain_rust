@@ -1,9 +1,11 @@
+use clap::{ Command, arg };
+use std::process::exit;
+use bitcoincash_addr::{Address};
+
 use crate::blockchain::Blockchain;
 use crate::errors::Result;
 use crate::wallet::Wallets;
 use crate::transaction::Transaction;
-use clap::{ Command, arg };
-use std::process::exit;
 
 pub struct Cli {
 }
@@ -59,9 +61,9 @@ impl Cli {
 
         if let Some(ref matches) = matches.subcommand_matches("get-balance") {
             if let Some(address) = matches.get_one::<String>("ADDRESS") {
-                let address = String::from(address);
+                let pub_key_hash = Address::decode(address).unwrap().body;
                 let bc = Blockchain::new()?;
-                let utxos = bc.find_UTXO(&address);
+                let utxos = bc.find_UTXO(&pub_key_hash);
                 let mut balance = 0;
 
                 for out in utxos {

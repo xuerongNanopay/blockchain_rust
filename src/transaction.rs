@@ -37,6 +37,14 @@ impl Transaction {
         Ok(tx)
     }
 
+    // from and to are address encoded by bitcoincash_addr::Address
+    // 1. find Wallet using from address
+    // 2. check if to address is valid(Need?)
+    // 3. Using pub_key_hash to find unspend coin through the block chain.
+    // 4. if balance is enough, create a transaction.
+    // 5. create TXInput to unlock coin from previous TXOutput
+    // 6. create TXOutput to forward coin to `to` address
+    // 7. return the remaining balance to 'from' address.
     pub fn new_UTXO(from: &str, to: &str, amount: i32, bc: &Blockchain) -> Result<Transaction> {
         let mut vin = Vec::new();
 
@@ -46,14 +54,15 @@ impl Transaction {
             None => anyhow::bail!("from wallet not found"),
         };
 
+        //INVE: do we need to verify receiver address?
         if let None = wallets.get_wallet(to) {
             anyhow::bail!("to wallet not found"),
         }
 
         let mut pub_key_hash = wallet.public_key.clone();
-        Wallet::hash_pub_key(pub_key_hash);
+        Wallet::hash_pub_key(&mut pub_key_hash);
 
-        let acc_v = bc.find_spendable_outputs(from, amount);
+        let acc_v = bc.find_spendable_outputs(&pub_key_hash, amount);
 
         if acc_v.0 < amount {
             error!("Not enough balance");
@@ -72,16 +81,10 @@ impl Transaction {
             }
         }
 
-        let mut vout = vec![TXOutput {
-            value: amount,
-            pub_key_hash: String::from(to),
-        }];
+        let mut vout = vec![TXOutput::new(amount, String::from(to))?];
 
         if acc_v.0 > amount {
-            vout.push(TXOutput {
-                value: acc_v.0 - amount,
-                pub_key_hash: String::from(from),
-            })
+            vout.push(TXOutput::new(acc_v.0 - amount, String::from(from))?)
         }
 
         let mut tx = Transaction {
