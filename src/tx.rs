@@ -3,6 +3,7 @@ use log::debug;
 use bitcoincash_addr::{Address};
 
 use crate::errors::Result;
+use crate::wallet::Wallet;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TXInput {
@@ -26,7 +27,7 @@ impl TXInput {
     // checks whether the address initiated the transaction.
     pub fn can_unlock_output_with(&self, unlocking_data: &[u8]) -> bool {
         let mut pub_key_hash = self.pub_key.clone();
-        Wallet::hash_pub_key(pub_key_hash);
+        Wallet::hash_pub_key(&mut pub_key_hash);
         pub_key_hash == unlocking_data
     }
     

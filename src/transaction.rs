@@ -29,9 +29,9 @@ impl Transaction {
                 txid: String::new(),
                 vout: -1,
                 signature: Vec::new(),
-                public_key: Vec::from
+                pub_key: Vec::new(),
             }],
-            vout: [TXOutput::new(100, to)?],
+            vout: vec![TXOutput::new(100, to)?],
         };
         tx.hash()?;
         Ok(tx)
@@ -56,7 +56,7 @@ impl Transaction {
 
         //INVE: do we need to verify receiver address?
         if let None = wallets.get_wallet(to) {
-            anyhow::bail!("to wallet not found"),
+            anyhow::bail!("to wallet not found")
         }
 
         let mut pub_key_hash = wallet.public_key.clone();
@@ -118,7 +118,8 @@ impl Transaction {
             }
         }
 
-        //Make a copy of current transaction.
+        // Make a copy of current transaction.
+        // Use only for hash calculation.
         let mut tx_copy = self.trim_copy();
 
         for idx in 0..tx_copy.vin.len() {
@@ -180,12 +181,12 @@ impl Transaction {
             }
         }
         
-        let mut tx_copy = self.trim_copy()
+        let mut tx_copy = self.trim_copy();
 
         for idx in 0..self.vin.len() {
             let prev_Tx = prev_TXs.get(&self.vin[idx].txid).unwrap();
             tx_copy.vin[idx].signature.clear();
-            tx_copy.vin[idx].pub_key = prev_tx.vout[self.vin[idx].vout as usize]
+            tx_copy.vin[idx].pub_key = prev_Tx.vout[self.vin[idx].vout as usize]
                 .pub_key_hash
                 .clone();
             tx_copy.id = tx_copy.hash()?;
