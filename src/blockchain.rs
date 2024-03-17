@@ -166,34 +166,37 @@ impl Blockchain {
         (accumulated, unspend_outputs)
     }
 
-    // find 
+    // Return a Transaction with associated id
+    pub fn find_transaction(&self, id: &str) -> Result<Transaction> {
+        for b in self.iter() {
+            for tx in b.get_transactions() {
+                if tx.id == id {
+                    return Ok(tx.clone());
+                }
+            }
+        }
+        anyhow::bail!("Transaction is not found")
+    }
 
-    // pub fn new() -> Result<Blockchain> {
-    //     let db = sled::open("data/blocks")?;
-    //     match db.get("LAST")? {
-    //         Some(hash) => {
-    //             let last_hash = String::from_utf8(hash.to_vec())?;
-    //             Ok(
-    //                 Blockchain {
-    //                     current_hash: last_hash,
-    //                     db,
-    //                 }
-    //             )
-    //         }
-    //         None => {
-    //             // Create First Block.
-    //             let block = Block::new_genesis_block();
-    //             db.insert(block.get_hash(), bincode::serialize(&block)?)?;
-    //             db.insert("LAST", block.get_hash().as_bytes())?;
-    //             let bc = Blockchain {
-    //                 current_hash: block.get_hash(),
-    //                 db,
-    //             };
-    //             bc.db.flush()?;
-    //             Ok(bc)
-    //         }
-    //     }
-    // }
+    // Sign inputs of a transaction(Only address owner can sign.)
+    pub fn sign_transaction(
+        &self, 
+        tx: &mut Transaction, 
+        private_key: &[u8]
+    ) -> Result<()> {
+        let prev_TXs = self.get_prev_TXs(tx)?;
+        tx.sign(private_key, prev_TXs);
+        Ok(())
+    }
+
+    fn get_prev_TXs(&self, tx: &Transaction) -> Result<Hashmap<String, Transaction>> {
+        let mut prev_TXs = HashMap::new();
+        for vin in &tx.vin {
+            let prev_TX = self.find_transaction(&vin.txid)?;
+            prev_TXs.insert(prev_TX.id.clone(), prev_TX);
+        }
+        Ok(prev_TXs)
+    }
 }
 
 impl<'a> Iterator for BlockchainIter<'a> {

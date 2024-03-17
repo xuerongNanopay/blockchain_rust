@@ -92,15 +92,16 @@ impl Transaction {
         
         //THINK: Why do we need this check?
         for vin in &self.vin {
-            if prev_Txs.get(&vin.txid).unwrap().id.is_empty() {
+            if prev_TXs.get(&vin.txid).unwrap().id.is_empty() {
                 anyhow::bail!("ERROR: Previous transaction is not correct")
             }
         }
 
+        //Make a copy of current transaction.
         let mut tx_copy = self.trim_copy();
 
         for idx in 0..tx_copy.vin.len() {
-            let prev_Tx = prevTXs.get(&tx_copy.vin[idx].txid).unwrap();
+            let pre_Tx = prev_TXs.get(&tx_copy.vin[idx].txid).unwrap();
             tx_copy.vin[idx].signature.clear();
             //Copy corresponding output.
             tx_copy.vin[idx].pub_key = pre_Tx.vout[tx_copy.vin[idx].vout as usize]
@@ -108,8 +109,10 @@ impl Transaction {
                 .clone();
             
             tx_copy.id = tx_copy.hash()?;
+            //Why reset?
             tx_copy.vin[idx].pub_key = Vec::new();
-            let signature = 
+            let signature = ed25519::signature(tx_copy.id.as_bytes(), &vec![1 as u8]);
+            self.vin[idx].signature = signature.to_vec()
         }
 
         Ok(())
@@ -140,6 +143,51 @@ impl Transaction {
             vin,
             vout,
         }
+    }
+
+    pub fn verify(
+        &mut self, 
+        prev_TXs: HashMap<String, Transaction>
+    ) -> Result<bool> {
+        if self.is_coinbase() {
+            return Ok(true);
+        }
+
+        for vin in &self.vin {
+            if prev_TXs.get(&vin.txid).unwrap().id.is_empty() {
+                anyhow::bail!("ERROR: Previous transaction is not correct")
+            }
+        }
+        
+        let mut tx_copy = self.trim_copy()
+
+        for idx in 0..self.vin.len() {
+            let prev_Tx = prev_TXs.get(&self.vin[idx].txid).unwrap();
+            tx_copy.vin[idx].signature.clear();
+            tx_copy.vin[idx].pub_key = prev_tx.vout[self.vin[idx].vout as usize]
+                .pub_key_hash
+                .clone();
+            tx_copy.id = tx_copy.hash()?;
+            tx_copy.vin[idx].pub_key = Vec::new();
+
+            if !ed25519::verify(
+                &tx_copy.id.as_bytes(),
+                &self.vin[idx].pub_key,
+                &self.vin[idx].signature
+            ) {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
+    // hash entire transaction?
+    fn hash(&mut self) -> Result<String> {
+        self.id = String::new();
+        let data = bincode::serialize(self)?;
+        let mut hasher = Sha256::new();
+        hasher.update(&data[..]);
+        Ok(format!("{:X}", hasher.finalize()))
     }
 
     fn set_id(&mut self) -> Result<()> {
