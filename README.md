@@ -12,3 +12,6 @@ Transaction:
   - TXOutput: sepcify the amount move into associated address. Would comsume by future TXInput
   - Signiture: What should incluld in the signiture.
     - 
+
+Thinks:
+  - Why do we need to hash the public key?

@@ -33,7 +33,7 @@ impl Wallet {
     // Example of generate address from Wallet
     pub fn get_address(&self) -> String {
         let mut pub_hash = self.public_key.clone();
-        hash_pub_key(&mut pub_hash);
+        Self::hash_pub_key(&mut pub_hash);
 
         let address = Address {
             body: pub_hash,
@@ -44,16 +44,16 @@ impl Wallet {
 
         address.encode().unwrap()
     }
-}
 
-pub fn hash_pub_key(pub_key: &mut Vec<u8>) {
-    let mut hasher1 = Sha256::new();
-    hasher1.input(pub_key);
-    hasher1.result(pub_key);
-    let mut hasher2 = Ripemd160::new();
-    hasher2.input(pub_key);
-    pub_key.resize(20, 0);
-    hasher2.result(pub_key);
+    pub fn hash_pub_key(pub_key: &mut Vec<u8>) {
+        let mut hasher1 = Sha256::new();
+        hasher1.input(pub_key);
+        hasher1.result(pub_key);
+        let mut hasher2 = Ripemd160::new();
+        hasher2.input(pub_key);
+        pub_key.resize(20, 0);
+        hasher2.result(pub_key);
+    }
 }
 
 pub struct Wallets {

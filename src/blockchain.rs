@@ -189,6 +189,7 @@ impl Blockchain {
         Ok(())
     }
 
+    // Return Map of associated previous transaction.
     fn get_prev_TXs(&self, tx: &Transaction) -> Result<Hashmap<String, Transaction>> {
         let mut prev_TXs = HashMap::new();
         for vin in &tx.vin {
@@ -196,6 +197,12 @@ impl Blockchain {
             prev_TXs.insert(prev_TX.id.clone(), prev_TX);
         }
         Ok(prev_TXs)
+    }
+
+    // Verify transaction input signature.
+    pub fn verify_transaction(&self, tx: &mut Transaction) -> Result<bool> {
+        let prev_TXs = self.get_prev_TXs(tx)?;
+        tx.verify(prev_TXs)
     }
 }
 

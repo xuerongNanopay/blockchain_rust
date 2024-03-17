@@ -7,6 +7,7 @@ use crypto::ed25519;
 use crate::errors::Result;
 use crate::blockchain::Blockchain;
 use crate::tx::{TXInput, TXOutput};
+use crate::wallet::{Wallet, Wallets};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Transaction {
@@ -40,6 +41,20 @@ impl Transaction {
 
     pub fn new_UTXO(from: &str, to: &str, amount: i32, bc: &Blockchain) -> Result<Transaction> {
         let mut vin = Vec::new();
+
+        let wallets = Wallets::new()?;
+        let wallet = match wallets.get_wallet(from) {
+            Some(w) => w,
+            None => anyhow::bail!("from wallet not found"),
+        };
+
+        if let None = wallets.get_wallet(to) {
+            anyhow::bail!("to wallet not found"),
+        }
+
+        let mut pub_key_hash = wallet.public_key.clone();
+        Wallet::hash_pub_key(pub_key_hash);
+
         let acc_v = bc.find_spendable_outputs(from, amount);
 
         if acc_v.0 < amount {
@@ -52,7 +67,8 @@ impl Transaction {
                 let input = TXInput {
                     txid: tx.0.clone(),
                     vout: out,
-                    script_sig: String::from(from),
+                    signature: Vec::new(),
+                    pub_key: wallet.public_key.clone(),
                 };
                 vin.push(input);
             }
@@ -60,13 +76,13 @@ impl Transaction {
 
         let mut vout = vec![TXOutput {
             value: amount,
-            script_pub_key: String::from(to),
+            pub_key_hash: String::from(to),
         }];
 
         if acc_v.0 > amount {
             vout.push(TXOutput {
                 value: acc_v.0 - amount,
-                script_pub_key: String::from(from),
+                pub_key_hash: String::from(from),
             })
         }
 
