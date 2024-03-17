@@ -28,14 +28,12 @@ impl Transaction {
             vin: vec![TXInput {
                 txid: String::new(),
                 vout: -1,
-                script_sig: data,
+                signature: Vec::new(),
+                public_key: Vec::from
             }],
-            vout: vec![TXOutput {
-                value: 100,
-                script_pub_key: to,
-            }],
+            vout: [TXOutput::new(100, to)?],
         };
-        tx.set_id()?;
+        tx.hash()?;
         Ok(tx)
     }
 
@@ -91,7 +89,7 @@ impl Transaction {
             vin,
             vout,
         };
-        tx.set_id()?;
+        tx.hash()?;
         bc.sign_transaction(&mut tx, &wallet.secret_key)?;
         Ok(tx)
     }
@@ -205,14 +203,6 @@ impl Transaction {
         let mut hasher = Sha256::new();
         hasher.update(&data[..]);
         Ok(format!("{:X}", hasher.finalize()))
-    }
-
-    fn set_id(&mut self) -> Result<()> {
-        let mut hasher = Sha256::new();
-        let data = bincode::serialize(self)?;
-        hasher.update(&data[..]);
-        self.id = format!("{:X}", hasher.finalize());
-        Ok(())
     }
 
     // If a transaction has only one vin, and its txid is empty and vout == -1,
