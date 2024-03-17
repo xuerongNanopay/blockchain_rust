@@ -99,6 +99,9 @@ impl Transaction {
 
     // Create/Copy the transaction with signature set.
     // You need to understand what need to include in the signature.
+    // sign a transaction need pub_key_hash from previous Transaction.
+    // And, only Blockchain struct has method to access whole chain.
+    // So, instead of calling this method directly, calling bc.sign_transaction.
     pub fn sign(
         &mut self,
         private_key: &[u8],
