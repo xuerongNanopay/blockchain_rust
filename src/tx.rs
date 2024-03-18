@@ -61,3 +61,11 @@ impl TXOutput {
 pub struct TXOutputs {
     pub outputs: Vec<TXOutput>,
 }
+
+impl TXOutputs {
+    pub fn new() -> TXOutputs {
+        TXOutputs {
+            outputs: Vec::new(),
+        }
+    }
+}
