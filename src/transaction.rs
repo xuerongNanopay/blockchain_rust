@@ -29,7 +29,7 @@ impl Transaction {
                 txid: String::new(),
                 vout: -1,
                 signature: Vec::new(),
-                pub_key: Vec::new(),
+                pub_key: Vec::from(data.as_bytes()),
             }],
             vout: vec![TXOutput::new(100, to)?],
         };
