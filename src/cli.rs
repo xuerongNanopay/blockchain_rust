@@ -55,7 +55,9 @@ impl Cli {
 
         if let Some(ref matches) = matches.subcommand_matches("create") {
             if let Some(address) = matches.get_one::<String>("ADDRESS") {
-                Blockchain::create_blockchain(String::from(address))?;
+                let blockchain = Blockchain::create_blockchain(String::from(address))?;
+                let utxo_set = UTXOSet::new(blockchain);
+                utxo_set.reindex()?;
                 println!("create blockchain");
             }
         }
