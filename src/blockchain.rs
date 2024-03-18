@@ -4,7 +4,7 @@ use log::info;
 use crate::errors::Result;
 use crate::block::Block;
 use crate::transaction::{Transaction};
-use crate::tx::TXOutput;
+use crate::tx::{TXOutput, TXOutputs};
 
 const TARGET_HEXT: usize = 2;
 const DB_NAME: &str = "data/blocks";
@@ -119,15 +119,46 @@ impl Blockchain {
         unspend_TXs
     }
 
-    // Find and return all unspend transaction outputs with associate address.
-    pub fn find_UTXO(&self, address: &[u8]) -> Vec<TXOutput> {
-        let mut utxos = Vec::<TXOutput>::new();
-        let unspend_TXs = self.find_unspent_transactions(address);
 
-        for tx in unspend_TXs {
-            for out in tx.vout {
-                if out.can_be_unlock_with(address) {
-                    utxos.push(out);
+    // Find all unspend TXOutput.
+    pub fn find_UTXO(&self) -> HashMap<String, TXOutputs> {
+        let mut utxos = HashMap::<String, TXOutputs>::new();
+        let mut spend_txos = HashMap::<String, Vec<i32>>::new();
+
+        for block in self.iter() {
+            for tx in block.get_transaction() {
+                for idx in 0..tx.vout.len() {
+                    if let Some(ids) = spend_txos.get(&tx.id) {
+                        if ids.contains(&(index as i32)) {
+                            continue;
+                        }
+                    }
+
+                    match utxos.get_mut(&tx.id) {
+                        Some(v) => {
+                            v.outputs.push(tx.vout[index].clone());
+                        }
+                        None => {
+                            utxos.insert(
+                                tx.id.clone(),
+                                TXoutputs {
+                                    outputs: vec![tx.vout[index].clone()],
+                                }
+                            );
+                        }
+                    }
+                }
+                if !tx.is_coinbase() {
+                    for i in &tx.vin {
+                        match spend_txos.get_mut(&i.txid) {
+                            Some(v) -> {
+                                v.push(i.vout);
+                            }
+                            None => {
+                                spend_txos.insert(i.txid.clone(), vec![i.vout]);
+                            }
+                        }
+                    }
                 }
             }
         }

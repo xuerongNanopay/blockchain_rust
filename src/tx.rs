@@ -56,3 +56,8 @@ impl TXOutput {
         Ok(txo)
     }
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TXOutputs {
+    pub outputs: Vec<TXOutput>,
+}
