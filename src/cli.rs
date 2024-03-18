@@ -51,6 +51,10 @@ impl Cli {
                 Command::new("list-addresses")
                     .about("list all addresses")
             )
+            .subcommand(
+                Command::new("reindex")
+                    .about("Re-index the UTXOSet")
+            )
             .get_matches();
 
         if let Some(ref matches) = matches.subcommand_matches("create") {
@@ -107,6 +111,14 @@ impl Cli {
 
             utxo_set.update(&new_block)?;
             println!("success!");
+        }
+
+        if let Some(_) = matches.subcommand_matches("reindex") {
+            let mut bc = Blockchain::new()?;
+            let mut utxo_set = UTXOSet::new(bc);
+            utxo_set.reindex()?;
+            let count = utxo_set.count_transactions()?;
+            println!("Done! There are {count} transactions in the UTXO set.");
         }
 
         if let Some(_) = matches.subcommand_matches("print-chain") {
