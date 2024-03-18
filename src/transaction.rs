@@ -33,7 +33,7 @@ impl Transaction {
             }],
             vout: vec![TXOutput::new(100, to)?],
         };
-        tx.hash()?;
+        tx.id = tx.hash()?;
         Ok(tx)
     }
 
@@ -92,7 +92,7 @@ impl Transaction {
             vin,
             vout,
         };
-        tx.hash()?;
+        tx.id = tx.hash()?;
         bc.sign_transaction(&mut tx, &wallet.secret_key)?;
         Ok(tx)
     }
