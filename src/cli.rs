@@ -6,6 +6,7 @@ use crate::blockchain::Blockchain;
 use crate::errors::Result;
 use crate::wallet::Wallets;
 use crate::transaction::Transaction;
+use crate::utxoset::UTXOSet;
 
 pub struct Cli {
 }
@@ -63,10 +64,11 @@ impl Cli {
             if let Some(address) = matches.get_one::<String>("ADDRESS") {
                 let pub_key_hash = Address::decode(address).unwrap().body;
                 let bc = Blockchain::new()?;
-                let utxos = bc.find_UTXO(&pub_key_hash);
-                let mut balance = 0;
+                let utxo_set = UTXOSet::new(bc);
+                let utxos = utxo_set.find_UTXO(&pub_key_hash)?;
 
-                for out in utxos {
+                let mut balance = 0;
+                for out in utxos.outputs {
                     balance += out.value;
                 }
                 println!("Balance of `{}`; {}", address, balance)
@@ -96,8 +98,12 @@ impl Cli {
             };
 
             let mut bc = Blockchain::new()?;
-            let tx = Transaction::new_UTXO(from, to, amount, &bc)?;
-            bc.add_block(vec![tx])?;
+            let mut utxo_set = UTXOSet::new(bc);
+            let tx = Transaction::new_UTXO(from, to, amount, &utxo_set)?;
+            let cbtx = Transaction::new_coinbase(from.to_string(), String::from("reward!"))?;
+            let new_block = utxo_set.blockchain.add_block(vec![cbtx, tx])?;
+
+            utxo_set.update(&new_block)?;
             println!("success!");
         }
 

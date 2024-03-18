@@ -55,7 +55,7 @@ impl Blockchain {
         Ok(bc)
     }
 
-    pub fn add_block(&mut self, transactions: Vec<Transaction>) -> Result<()> {
+    pub fn add_block(&mut self, transactions: Vec<Transaction>) -> Result<Block> {
         //TODO: what is the height of block chain.
         let last_hash = self.db.get("LAST")?.unwrap();
 
@@ -64,7 +64,7 @@ impl Blockchain {
         self.db.insert(new_block.get_hash(), bincode::serialize(&new_block)?)?;
         self.db.insert("LAST", new_block.get_hash().as_bytes())?;
         self.current_hash = new_block.get_hash();
-        Ok(())
+        Ok(new_block)
     }
 
     pub fn iter(&self) -> BlockchainIter {

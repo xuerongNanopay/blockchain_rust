@@ -5,9 +5,9 @@ use std::collections::HashMap;
 use crypto::ed25519;
 
 use crate::errors::Result;
-use crate::blockchain::Blockchain;
 use crate::tx::{TXInput, TXOutput};
 use crate::wallet::{Wallet, Wallets};
+use crate::utxoset::UTXOSet;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Transaction {
@@ -45,7 +45,7 @@ impl Transaction {
     // 5. create TXInput to unlock coin from previous TXOutput
     // 6. create TXOutput to forward coin to `to` address
     // 7. return the remaining balance to 'from' address.
-    pub fn new_UTXO(from: &str, to: &str, amount: i32, bc: &Blockchain) -> Result<Transaction> {
+    pub fn new_UTXO(from: &str, to: &str, amount: i32, txSet: &UTXOSet) -> Result<Transaction> {
         let mut vin = Vec::new();
 
         let wallets = Wallets::new()?;
@@ -62,7 +62,7 @@ impl Transaction {
         let mut pub_key_hash = wallet.public_key.clone();
         Wallet::hash_pub_key(&mut pub_key_hash);
 
-        let acc_v = bc.find_spendable_outputs(&pub_key_hash, amount);
+        let acc_v = txSet.find_spendable_outputs(&pub_key_hash, amount)?;
 
         if acc_v.0 < amount {
             error!("Not enough balance");
@@ -93,7 +93,7 @@ impl Transaction {
             vout,
         };
         tx.id = tx.hash()?;
-        bc.sign_transaction(&mut tx, &wallet.secret_key)?;
+        txSet.blockchain.sign_transaction(&mut tx, &wallet.secret_key)?;
         Ok(tx)
     }
 

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::blockchain::Blockchain;
 use crate::errors::Result;
 use crate::block::Block;
-use crate::tx::{TXOutputs, TXOutput};
+use crate::tx::{TXOutputs};
 
 const UTXOS_PATH: & str = "data/utxos";
 
@@ -11,8 +11,17 @@ pub struct UTXOSet {
     pub blockchain: Blockchain,
 }
 
+// Cache/Index for the block chain.
+// Key: transactionId, value: unspend TXOutput.
+// UTXOSet only maintain unspend transactions.
 impl UTXOSet {
-    
+
+    pub fn new(bc: Blockchain) -> UTXOSet {
+        return UTXOSet {
+            blockchain: bc,
+        }
+    }
+
     // Rebuilds the UTXO set
     pub fn reindex(&self) -> Result<()> {
         // Recreate new DB.
@@ -103,6 +112,7 @@ impl UTXOSet {
         Ok((accumulated, unspend_outputs))
     }
 
+    // find UTXO for a public key hash.
     pub fn find_UTXO(&self, pub_key_hash: &[u8]) -> Result<TXOutputs> {
         let mut utxos = TXOutputs::new();
         let db = sled::open(UTXOS_PATH)?;
