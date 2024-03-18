@@ -4,7 +4,7 @@ use log::info;
 use crate::errors::Result;
 use crate::block::Block;
 use crate::transaction::{Transaction};
-use crate::tx::{TXOutput, TXOutputs};
+use crate::tx::{TXOutputs};
 
 const TARGET_HEXT: usize = 2;
 const DB_NAME: &str = "data/blocks";
@@ -126,7 +126,7 @@ impl Blockchain {
         let mut spend_txos = HashMap::<String, Vec<i32>>::new();
 
         for block in self.iter() {
-            for tx in block.get_transaction() {
+            for tx in block.get_transactions() {
                 for idx in 0..tx.vout.len() {
                     if let Some(ids) = spend_txos.get(&tx.id) {
                         if ids.contains(&(idx as i32)) {
