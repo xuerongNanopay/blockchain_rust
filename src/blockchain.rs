@@ -129,20 +129,20 @@ impl Blockchain {
             for tx in block.get_transaction() {
                 for idx in 0..tx.vout.len() {
                     if let Some(ids) = spend_txos.get(&tx.id) {
-                        if ids.contains(&(index as i32)) {
+                        if ids.contains(&(idx as i32)) {
                             continue;
                         }
                     }
 
                     match utxos.get_mut(&tx.id) {
                         Some(v) => {
-                            v.outputs.push(tx.vout[index].clone());
+                            v.outputs.push(tx.vout[idx].clone());
                         }
                         None => {
                             utxos.insert(
                                 tx.id.clone(),
-                                TXoutputs {
-                                    outputs: vec![tx.vout[index].clone()],
+                                TXOutputs {
+                                    outputs: vec![tx.vout[idx].clone()],
                                 }
                             );
                         }
@@ -151,7 +151,7 @@ impl Blockchain {
                 if !tx.is_coinbase() {
                     for i in &tx.vin {
                         match spend_txos.get_mut(&i.txid) {
-                            Some(v) -> {
+                            Some(v) => {
                                 v.push(i.vout);
                             }
                             None => {
