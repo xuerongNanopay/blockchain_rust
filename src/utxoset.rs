@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use log::info;
 
 use crate::blockchain::Blockchain;
 use crate::errors::Result;
@@ -25,7 +26,9 @@ impl UTXOSet {
     // Rebuilds the UTXO set
     pub fn reindex(&self) -> Result<()> {
         // Recreate new DB.
-        std::fs::remove_dir_all(UTXOS_PATH)?;
+        if let Err(e) = std::fs::remove_dir_all(UTXOS_PATH) {
+            info!("UTXOSet does not exists.");
+        }
         let db = sled::open(UTXOS_PATH)?;
 
         let utxos = self.blockchain.find_UTXO();
