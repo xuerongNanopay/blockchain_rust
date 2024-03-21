@@ -4,6 +4,8 @@ use sha2::{Sha256, Digest};
 use crate::errors::Result;
 use crate::transaction::Transaction;
 use serde::{Serialize, Deserialize};
+use merkle_cbt::merkle_tree::Merge;
+use merkle_cbt::merkle_tree::CBMT;
 
 const TARGET_HEXT: usize = 2;
 
@@ -91,5 +93,19 @@ impl Block {
         );
         let bytes: Vec<u8> = bincode::serialize(&content)?;
         Ok(bytes)
+    }
+}
+
+struct MergeTX {}
+
+impl Merge for MergeTX {
+    type Item = Vec<u8>;
+    // Combine left and right. then doing hash.
+    fn merge(left: &Self::Item, right: &Self::Item) -> Self::Item {
+        let mut hasher: Sha256 = Sha256::new();
+        let mut data: Vec<u8> = left.clone();
+        data.append(&mut right.clone());
+        hasher.update(&data[..]);
+        return hasher.finalize().to_vec();
     }
 }
