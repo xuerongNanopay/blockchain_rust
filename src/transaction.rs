@@ -204,8 +204,7 @@ impl Transaction {
     }
 
     // hash entire transaction?
-    fn hash(&mut self) -> Result<String> {
-        self.id = String::new();
+    pub fn hash(&self) -> Result<String> {
         let data = bincode::serialize(self)?;
         let mut hasher = Sha256::new();
         hasher.update(&data[..]);

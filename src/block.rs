@@ -87,12 +87,23 @@ impl Block {
     fn prepare_hash_data(&self) -> Result<Vec<u8>> {
         let content = (
             self.prev_block_hash.clone(),
-            self.transactions.clone(),
+            self.hash_transactions()?,
             self.timestamp,
+            TARGET_HEXT,
             self.nonce
         );
         let bytes: Vec<u8> = bincode::serialize(&content)?;
         Ok(bytes)
+    }
+
+    fn hash_transactions(&self) -> Result<Vec<u8>> {
+        let mut transactions = Vec::new();
+        for tx in &self.transactions {
+            transactions.push(tx.hash()?.as_bytes().to_owned());
+        }
+        let tree = CBMT::<Vec<u8>, MergeTX>::build_merkle_tree(&*transactions);
+
+        Ok(tree.root())
     }
 }
 
