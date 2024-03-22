@@ -15,6 +15,7 @@ pub struct UTXOSet {
 // Cache/Index for the block chain.
 // Key: transactionId, value: unspend TXOutput.
 // UTXOSet only maintain unspend transactions.
+// Caller should guarantee thread safe.
 impl UTXOSet {
 
     pub fn new(bc: Blockchain) -> UTXOSet {
@@ -26,7 +27,7 @@ impl UTXOSet {
     // Rebuilds the UTXO set
     pub fn reindex(&self) -> Result<()> {
         // Recreate new DB.
-        if let Err(e) = std::fs::remove_dir_all(UTXOS_PATH) {
+        if let Err(_) = std::fs::remove_dir_all(UTXOS_PATH) {
             info!("UTXOSet does not exists.");
         }
         let db = sled::open(UTXOS_PATH)?;

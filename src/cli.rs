@@ -103,7 +103,7 @@ impl Cli {
                 exit(1)
             };
 
-            let mut bc = Blockchain::new()?;
+            let bc = Blockchain::new()?;
             let mut utxo_set = UTXOSet::new(bc);
             let tx = Transaction::new_UTXO(from, to, amount, &utxo_set)?;
             let cbtx = Transaction::new_coinbase(from.to_string(), String::from("reward!"))?;
@@ -114,8 +114,8 @@ impl Cli {
         }
 
         if let Some(_) = matches.subcommand_matches("reindex") {
-            let mut bc = Blockchain::new()?;
-            let mut utxo_set = UTXOSet::new(bc);
+            let bc = Blockchain::new()?;
+            let utxo_set = UTXOSet::new(bc);
             utxo_set.reindex()?;
             let count = utxo_set.count_transactions()?;
             println!("Done! There are {count} transactions in the UTXO set.");

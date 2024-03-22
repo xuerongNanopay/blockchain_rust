@@ -7,6 +7,7 @@ mod tx;
 mod wallet;
 mod utxoset;
 mod server;
+mod tcp;
 
 use errors::Result;
 use cli::Cli;

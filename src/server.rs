@@ -1,6 +1,9 @@
 use std::collections::{HashSet, HashMap};
 use std::sync::{Arc, Mutex};
+use std::net::TcpStream;
+use std::io::{Read, Write};
 
+use log::info;
 use serde::{Serialize, Deserialize};
 
 use crate::utxoset::UTXOSet;
@@ -16,6 +19,12 @@ pub struct Server {
     node_address: String,
     mining_address: String,
     inner: Arc<Mutex<ServerInner>>,
+}
+struct ServerInner {
+    known_nodes: HashSet<String>,
+    utxo: UTXOSet,
+    blocks_in_transit: Vec<String>,
+    mempool: HashMap<String, Transaction>,
 }
 
 impl Server {
@@ -33,13 +42,183 @@ impl Server {
             })),
         })
     }
-}
 
-struct ServerInner {
-    known_nodes: HashSet<String>,
-    utxo: UTXOSet,
-    blocks_in_transit: Vec<String>,
-    mempool: HashMap<String, Transaction>,
+    fn handle_connection(&self, mut stream: TcpStream) -> Result<()> {
+        let mut buffer = Vec::new();
+        let count = stream.read_to_end(&mut buffer)?;
+        info!("Accept request: length {}", count);
+
+        let cmd = bytes_to_cmd(&buffer)?;
+
+        match cmd {
+            Message::Addr(data) => self.handle_addr(data)?,
+            Message::Block(data) => self.handle_block(data)?,
+            Message::Inv(data) => self.handle_inv(data)?,
+            Message::GetBlock(data) => self.handle_get_blocks(data)?,
+            Message::GetData(data) => self.handle_get_data(data)?,
+            Message::Tx(data) => self.handle_tx(data)?,
+            Message::Version(data) => self.handle_version(data)?,
+        }
+    }
+
+    fn send_addr(&self, addr: &str) -> Result<()> {
+        info!("send address info to : {}", addr);
+        let nodes = self.get_known_nodes();
+        let data = bincode::serialize(&(cmd_to_bytes("addr"), nodes))?;
+        self.send_data(addr, &data)
+    }
+
+    fn send_block(&self, addr: &str, b: &Block) -> Result<()> {
+        info!("send block data to: {} block hash: {}", addr, b.get_hash());
+        let data = Blockmsg {
+            addr_from: self.node_address.clone(),
+            block: b.clone(),
+        }
+        let data = bincode::serialize(&(cmd_to_bytes("block"), data))?;
+        self.send_data(addr, &data)
+    }
+
+    fn send_inv(&self, addr: &str, kind: &str, items: Vec<String>) -> Result<()> {
+        info!("send inv message to: {} kind: {} data: {:?}", addr, kind, items);
+
+        let data = Invmsg {
+            addr_from: self.node_address.clone(),
+            kind: kind.to_string(),
+            items,
+        };
+        let data = bincode::serialize(&(cmd_to_bytes("inv"), data))?;
+        self.send_data(addr, &data)
+    }
+
+    pub fn send_tx(&self, addr: &str, tx: &Transaction) -> Result<()> {
+        info!("send tx to: {} txid: {}", addr, &tx.id);
+        let data = Txmsg {
+            addr_from: self.node_address.clone(),
+            transaction: tx.clone(),
+        };
+        let data = bincode::serialize(&(cmd_to_bytes("tx"), data))?;
+        self.send_data(addr, &data)
+    }
+    
+    fn send_version(&self, addr: &str) -> Result<()> {
+        info!("send version info to : {}", addr);
+        let add = Versionmsg {
+            addr_from: self.node_address.clone(),
+            best_height: self.get_best_height()?,
+            version: VERSION,
+        }
+        let data = bincode::serialize(&(cmd_to_bytes("version"), data))?;
+        self.send_data(addr, &data)
+    }
+
+    fn send_get_blocks(&self, addr: &str) -> Result<()> {
+        info!("send get blocks message to: {}", addr);
+        let data = GetBlockmsg {
+            addr_from: self.node_address.clone(),
+        }
+        let data = bincode::serialize(&(cmd_to_bytes("getblocks"), data))?;
+        self.send_data(addr, &data)
+    }
+
+    fn send_get_data(&self, addr: &str, kind: &str, id: &str) -> Result<()> {
+        info!(
+            "send get data message to: {} kind: {} id: {}",
+            addr, kind, id
+        );
+        let data = GetDatamsg {
+            addr_from: self.node_address.clone(),
+            kind: kind.to_string(),
+            id: id.to_stirng(),
+        };
+        let data = bincode::serialize(&(cmd_to_bytes("getdata"), data))?;
+        self.send_data(addr, &data)
+    }
+
+    fn send_data(&self, addr: &str, data: &[u8]) -> Result<()> {
+        if addr == &self.node_address {
+            return Ok(());
+        }
+        let mut stream = match TcpStream::connect(adddr) {
+            Ok(s) => s,
+            Err(_) => {
+                slef.remove_node(addr);
+                return Ok(());
+            }
+        };
+        stream.write(data)?;
+
+        info!("data send successfully");
+        Ok(())
+    }
+
+    fn handle_addr(&self, msg: Vec<String>) -> Result<()> {
+        info!("receive address msg: {:#?}", msg);
+        for node in msg {
+            self.add_nodes(&node);
+        }
+        Ok(())
+    }
+
+    // Handle new block from peer.
+    fn handle_block(&self, msg: Blockmsg) -> Result<()> {
+        info!(
+            "receive block msg: {}, {}",
+            msg.addr_from,
+            msg.block.get_hash()
+        );
+        self.add_block(msg.block)?;
+
+        let mut in_transit = self.get_in_transit();
+        if in_transit.len() > 0 {
+            let block_hash = &in_transit[0];
+            self.send_get_data(&msg.addr_from, "block", block_hash)?;
+            in_transit.remove(0);
+            self.replace_in_transit(in_transit);
+        } else {
+            self.utxo_reindex()?;
+        }
+        Ok(())
+    }
+
+    fn handle_get_blocks(&self, msg: GetBlockmsg) -> Result<()> {
+        info!("receive get blocks msg: {:#?}", msg);
+        let block_hashs = self.get_block_hashs();
+        self.send_inv(&msg.addr_from, "block", block_hashs)?;
+        Ok(())
+    }
+
+    fn handle_get_data(&self, msg: GetDatamsg) -> Result<()> {
+        info!("receive get data msg: {:#?}", msg);
+        if msg.kind == "block" {
+            let block = self.get_block(&msg.id)?;
+            self.send_block(&msg.addr_from, &block)?;
+        } else if msg.kind == "tx" {
+            let tx = self.get_mempool_tx(&msg.id).unwrap();
+            self.send_tx(&msg.addr_from, &tx)?;
+        }
+        Ok(())
+    }
+
+
+    fn get_block_hashs(&self) -> Vec<String> {
+        self.inner.lock().unwrap().utxo.blockchain.get_block_hashs()
+    }
+
+    fn add_nodes(&self, addr: &str) {
+        self.inner
+            .lock()
+            .unwrap()
+            .known_nodes
+            .insert(String::from(addr));
+    }
+
+    fn get_known_nodes(&self) -> HashSet<String> {
+        self.inner.lock().unwrap().known_nodes.clone()
+    }
+
+    fn remove_node(&self, addr: &str) {
+        self.inner.lock().unwrap().known_nodes.remove(addr);
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -89,4 +268,52 @@ enum Message {
     GetBlock(GetBlockmsg),
     Inv(Invmsg),
     Block(Blockmsg),
+}
+
+
+
+/*
+ * CMD: 0 .. CMD_LEN
+ * Data of CMD: CMD_LEN ..
+ */
+ fn bytes_to_cmd(bytes: &[u8]) -> Result<Message> {
+    let mut cmd = Vec::new();
+    let cmd_bytes = &bytes[..CMD_LEN];
+    let data = &bytes[CMD_LEN..];
+    for b in cmd_bytes {
+        if 0 as u8 != *b {
+            cmd.push(*b);
+        }
+    }
+    info!("cmd: {}", String::from_utf8(cmd.clone())?);
+
+    if cmd == "addr".as_bytes() {
+        let data: Vec<String> = bincode::deserialize(data)?;
+        Ok(Message::Addr(data))
+    } else if cmd == "block".as_bytes() {
+        let data: Blockmsg = bincode::deserialize(data)?;
+        Ok(Message::Block(data))
+    } else if cmd == "inv".as_bytes() {
+        let data: Invmsg = bincode:: deserialize(data)?;
+        Ok(Message::Inv(data))
+    } else if cmd == "getblocks".as_bytes() {
+        let data: GetBlockmsg = bincode::deserialize(data)?;
+        Ok(Message::GetBlock(data))
+    } else if cmd == "getdata".as_bytes() {
+        let data: GetDatamsg = bincode::deserialize(data)?;
+        Ok(Message::GetData(data))
+    } else if cmd == "tx".as_bytes() {
+        let data: Txmsg = bincode::deserialize(data)?;
+        Ok(Message::Tx(data))
+    } else {
+        anyhow::bail!("Unknown command in the server")
+    }
+}
+
+fn cmd_to_bytes(cmd: &str) -> [u8; CMD_LEN] {
+    let mut data = [0; CMD_LEN];
+    for (i , d) in cmd.as_bytes().iter().enumerate() {
+        data[i] = *d;
+    }
+    data
 }

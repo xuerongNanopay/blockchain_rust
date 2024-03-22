@@ -39,7 +39,7 @@ impl Blockchain {
     }
     pub fn create_blockchain(address: String) -> Result<Blockchain> {
         info!("Creating new blockchain");
-        if let Err(e) = std::fs::remove_dir_all(DB_NAME) {
+        if let Err(_) = std::fs::remove_dir_all(DB_NAME) {
             info!("Blockchain does not exists.");
         }
         let db = sled::open(DB_NAME)?;
