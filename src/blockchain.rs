@@ -6,9 +6,9 @@ use crate::block::Block;
 use crate::transaction::{Transaction};
 use crate::tx::{TXOutputs};
 
-const TARGET_HEXT: usize = 2;
+const TARGET_HEXT: usize = 4;
 const DB_NAME: &str = "data/blocks";
-const GENESIS_COINBASE_DATA: &str = "TODO";
+const GENESIS_COINBASE_DATA: &str = "Initial Coin";
 
 #[derive(Debug)]
 pub struct Blockchain {
@@ -57,16 +57,49 @@ impl Blockchain {
         Ok(bc)
     }
 
-    pub fn add_block(&mut self, transactions: Vec<Transaction>) -> Result<Block> {
-        //TODO: what is the height of block chain.
-        let last_hash = self.db.get("LAST")?.unwrap();
+    // pub fn add_block(&mut self, transactions: Vec<Transaction>) -> Result<Block> {
+    //     //TODO: what is the height of block chain.
+    //     let last_hash = self.db.get("LAST")?.unwrap();
 
-        //TODO: check to_vec method.
-        let new_block = Block::new(transactions, String::from_utf8(last_hash.to_vec())?, TARGET_HEXT)?; 
-        self.db.insert(new_block.get_hash(), bincode::serialize(&new_block)?)?;
-        self.db.insert("LAST", new_block.get_hash().as_bytes())?;
-        self.current_hash = new_block.get_hash();
-        Ok(new_block)
+    //     //TODO: check to_vec method.
+    //     let new_block = Block::new(transactions, String::from_utf8(last_hash.to_vec())?, TARGET_HEXT)?; 
+    //     self.db.insert(new_block.get_hash(), bincode::serialize(&new_block)?)?;
+    //     self.db.insert("LAST", new_block.get_hash().as_bytes())?;
+    //     self.current_hash = new_block.get_hash();
+    //     Ok(new_block)
+    // }
+
+    pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<Block> {
+        info!("mine a new block");
+
+        for tx in &transaction {
+            // Verify if transactions are valid.
+            if !self.verify_transaction(tx)? {
+                anyhow::bail!("ERROR: Invalid transaction")
+            }
+        }
+
+        let lasthash = self.db.get("LAST")?.unwrap();
+
+        let newblock = Block::new_block(
+            transactions,
+            String::from_utf8(lasthash.to_vec())?,
+            self.get_best_height()? + 1,
+        )?;
+        self.db.insert(newblock.get_hash(), bincode::serialize(&newblock)?)?;
+        self.db.insert("LAST", newblock.get_hash().as_bytes())?;
+        self.db.flush()?;
+    }
+
+    pub fn get_best_height(&self) -> Result<usize> {
+        let lasthash = if let Some(h) = self.db.get("LAST")? {
+            h
+        } else {
+            return Ok(-1);
+        };
+        let last_data = self.db.get(lasthash)?.unwrap();
+        let last_block: Block = bincode::deserialize(&last_data.to_vec())?;
+        Ok(last_block.get_height())
     }
 
     pub fn iter(&self) -> BlockchainIter {
@@ -201,7 +234,7 @@ impl Blockchain {
     }
 
     // Verify transaction input signature.
-    pub fn verify_transaction(&self, tx: &mut Transaction) -> Result<bool> {
+    pub fn verify_transaction(&self, tx: &Transaction) -> Result<bool> {
         let prev_TXs = self.get_prev_TXs(tx)?;
         tx.verify(prev_TXs)
     }

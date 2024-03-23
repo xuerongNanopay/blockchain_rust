@@ -4,6 +4,7 @@ use std::net::TcpStream;
 use std::io::{Read, Write};
 use std::time::Duration;
 use std::thread;
+use net::{TcpListener, TcpStream};
 
 use log::{info, debug};
 use serde::{Serialize, Deserialize};
@@ -57,7 +58,8 @@ impl Server {
         );
 
         thread::spawn(move || {
-            thread::sleep(Duration::from_millis(1000));
+            // Wait 2 seconds for Server initialization.
+            thread::sleep(Duration::from_millis(2000));
             if server1.get_best_height()? == -1 {
                 // Initial node, get blocks from other node.
                 server1.request_blocks()
@@ -65,7 +67,22 @@ impl Server {
                 // Sync blocks between nodes - check send_version and handle version.
                 server1.send_version(KNOWN_NODE1)
             }
-        })
+        });
+
+        let listener = TcpListener::bind(&self.node_address).unwrap();
+        info!("Server listen...");
+
+        for stream in listerner.incomming() {
+            let stream = stream?;
+            let server1 = Server {
+                node_address: self.node_address.clone(),
+                mining_address: self.mining_address.clone(),
+                inner: Arc::clone(&self,inner),
+            };
+            thread::spawn(move || server1.handle_connection(stream));
+        }
+
+        Ok(())
     }
 
     fn request_blocks(&self) -> Result<()> {

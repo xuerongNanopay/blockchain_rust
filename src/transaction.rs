@@ -168,7 +168,7 @@ impl Transaction {
     }
 
     pub fn verify(
-        &mut self, 
+        &self, 
         prev_TXs: HashMap<String, Transaction>
     ) -> Result<bool> {
         if self.is_coinbase() {
