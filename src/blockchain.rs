@@ -105,7 +105,7 @@ impl Blockchain {
     pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<Block> {
         info!("mine a new block");
 
-        for tx in &transaction {
+        for tx in &transactions {
             // Verify if transactions are valid.
             if !self.verify_transaction(tx)? {
                 anyhow::bail!("ERROR: Invalid transaction")
@@ -114,7 +114,7 @@ impl Blockchain {
 
         let lasthash = self.db.get("LAST")?.unwrap();
 
-        let newblock = Block::new_block(
+        let newblock = Block::new(
             transactions,
             String::from_utf8(lasthash.to_vec())?,
             self.get_best_height()? + 1,

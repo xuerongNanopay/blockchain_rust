@@ -19,7 +19,7 @@ pub struct Block {
     nonce: i32, //For difficulty in Proof of Work
 }
 
-impl Block 
+impl Block {
 
     pub fn get_height(&self) -> i32 {
         self.height

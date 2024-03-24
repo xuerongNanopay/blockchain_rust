@@ -1,10 +1,9 @@
 use std::collections::{HashSet, HashMap};
 use std::sync::{Arc, Mutex};
-use std::net::TcpStream;
 use std::io::{Read, Write};
 use std::time::Duration;
 use std::thread;
-use net::{TcpListener, TcpStream};
+use std::net::{TcpListener, TcpStream};
 
 use log::{info, debug};
 use serde::{Serialize, Deserialize};
@@ -49,7 +48,7 @@ impl Server {
     pub fn send_transaction(tx: &Transaction, utxoset: UTXOSet) -> Result<()> {
         let server = Server::new("7000", "", utxoset)?;
         server.send_tx(KNOWN_NODE1, tx)?;
-        OK(())
+        Ok(())
     }
 
     pub fn start_server(&self) -> Result<()> {
@@ -60,7 +59,7 @@ impl Server {
         };
         info!(
             "Start server at {}, mining address: {}",
-            $self.node_address, &self.mining_address
+            &self.node_address, &self.mining_address
         );
 
         thread::spawn(move || {
@@ -78,12 +77,12 @@ impl Server {
         let listener = TcpListener::bind(&self.node_address).unwrap();
         info!("Server listen...");
 
-        for stream in listerner.incomming() {
+        for stream in listener.incoming() {
             let stream = stream?;
             let server1 = Server {
                 node_address: self.node_address.clone(),
                 mining_address: self.mining_address.clone(),
-                inner: Arc::clone(&self,inner),
+                inner: Arc::clone(&self.inner),
             };
             thread::spawn(move || server1.handle_connection(stream));
         }
@@ -114,6 +113,8 @@ impl Server {
             Message::Tx(data) => self.handle_tx(data)?,
             Message::Version(data) => self.handle_version(data)?,
         }
+
+        Ok(())
     }
 
     fn send_addr(&self, addr: &str) -> Result<()> {
@@ -128,7 +129,7 @@ impl Server {
         let data = Blockmsg {
             addr_from: self.node_address.clone(),
             block: b.clone(),
-        }
+        };
         let data = bincode::serialize(&(cmd_to_bytes("block"), data))?;
         self.send_data(addr, &data)
     }
@@ -157,11 +158,11 @@ impl Server {
     
     fn send_version(&self, addr: &str) -> Result<()> {
         info!("send version info to : {}", addr);
-        let add = Versionmsg {
+        let data = Versionmsg {
             addr_from: self.node_address.clone(),
             best_height: self.get_best_height()?,
             version: VERSION,
-        }
+        };
         let data = bincode::serialize(&(cmd_to_bytes("version"), data))?;
         self.send_data(addr, &data)
     }
@@ -170,7 +171,7 @@ impl Server {
         info!("send get blocks message to: {}", addr);
         let data = GetBlockmsg {
             addr_from: self.node_address.clone(),
-        }
+        };
         let data = bincode::serialize(&(cmd_to_bytes("getblocks"), data))?;
         self.send_data(addr, &data)
     }
@@ -183,7 +184,7 @@ impl Server {
         let data = GetDatamsg {
             addr_from: self.node_address.clone(),
             kind: kind.to_string(),
-            id: id.to_stirng(),
+            id: id.to_string(),
         };
         let data = bincode::serialize(&(cmd_to_bytes("getdata"), data))?;
         self.send_data(addr, &data)
@@ -193,10 +194,10 @@ impl Server {
         if addr == &self.node_address {
             return Ok(());
         }
-        let mut stream = match TcpStream::connect(adddr) {
+        let mut stream = match TcpStream::connect(addr) {
             Ok(s) => s,
             Err(_) => {
-                slef.remove_node(addr);
+                self.remove_node(addr);
                 return Ok(());
             }
         };
@@ -233,6 +234,10 @@ impl Server {
             self.utxo_reindex()?;
         }
         Ok(())
+    }
+
+    fn get_in_transit(&self) -> Vec<String> {
+        self.inner.lock().unwrap().blocks_in_transit.clone()
     }
 
     fn add_block(&self, block: Block) -> Result<()> {
@@ -278,7 +283,7 @@ impl Server {
         //Why?
         self.send_addr(&msg.addr_from)?;
     
-        if !self.node_is_know(&msg.addr_from) {
+        if !self.node_is_known(&msg.addr_from) {
             self.add_nodes(&msg.addr_from);
         }
         Ok(())
@@ -340,12 +345,12 @@ impl Server {
                     // 3. Publishing Mined Block.
                     for node in self.get_known_nodes() {
                         if node != self.node_address {
-                            self.send_inv(&node, )
+                            self.send_inv(&node, "block", vec![new_block.get_hash()])?;
                         }
                     }
 
                     // 4. Exist loop if no transaction available.
-                    if mempool.len == 0 {
+                    if mempool.len() == 0 {
                         break;
                     }
                 }
@@ -353,6 +358,7 @@ impl Server {
                 self.clear_mempool();
             }
         }
+        Ok(())
     }
 
     // Operations for mempool
@@ -372,13 +378,13 @@ impl Server {
     }
 
     fn get_mempool(&self) -> HashMap<String, Transaction> {
-
+        self.inner.lock().unwrap().mempool.clone()
     }
 
     fn handle_inv(&self, msg: Invmsg) -> Result<()> {
         info!("receive inv msg: {:#?}", msg);
         if msg.kind == "block" {
-            let block_hash = &msg.items[0]
+            let block_hash = &msg.items[0];
             // Send request to get whole block.
             self.send_get_data(&msg.addr_from, "block", block_hash)?;
 
@@ -397,8 +403,8 @@ impl Server {
                         self.send_get_data(&msg.addr_from, "tx", txid)?
                     }
                 }
+                None => self.send_get_data(&msg.addr_from, "tx", txid)?,
             }
-            None => self.send_get_data(&msg.addr_from, "tx", txid)?,
         }
         Ok(())
     }
@@ -426,6 +432,22 @@ impl Server {
 
     fn remove_node(&self, addr: &str) {
         self.inner.lock().unwrap().known_nodes.remove(addr);
+    }
+
+    fn mine_block(&self, txs: Vec<Transaction>) -> Result<Block> {
+        self.inner.lock().unwrap().utxo.blockchain.mine_block(txs)
+    }
+
+    fn utxo_reindex(&self) -> Result<()> {
+        self.inner.lock().unwrap().utxo.reindex()
+    }
+
+    fn verify_tx(&self, tx: &Transaction) -> Result<bool> {
+        self.inner
+            .lock()
+            .unwrap()
+            .utxo
+            .blockchain.verify_transaction(tx)
     }
 }
 

@@ -7,6 +7,7 @@ use crate::errors::Result;
 use crate::wallet::Wallets;
 use crate::transaction::Transaction;
 use crate::utxoset::UTXOSet;
+use crate::server::Server;
 
 pub struct Cli {
 }
@@ -42,7 +43,7 @@ impl Cli {
                     .arg(arg!(<FROM>" 'Source wallet address'"))
                     .arg(arg!(<TO> " 'Destination wallet address'"))
                     .arg(arg!(<AMOUNT> " 'Amount to send'"))
-                    .arg(arg!(-m --mine" 'the from address mine immediately'"))
+                    .arg(arg!(-m --mine " 'the from address mine immediately'"))
             )
             .subcommand(
                 Command::new("create-wallet")
@@ -115,7 +116,7 @@ impl Cli {
                 exit(1)
             };
 
-            let matches.contains_id("mine") {
+            if matches.contains_id("mine") {
                 cmd_send(from, to, amount, true)?;
             } else {
                 cmd_send(from, to, amount, false)?;
@@ -194,13 +195,13 @@ fn cmd_send(from: &str, to: &str, amount: i32, mine_now: bool) -> Result<()> {
     let wallet = wallets.get_wallet(from).unwrap();
     let tx = Transaction::new_UTXO(wallet, to, amount, &utxo_set)?;
     if mine_now {
-        let cbtx = Transactions::new_coinbase(from.to_string(), String::from("reward!"))
+        let cbtx = Transaction::new_coinbase(from.to_string(), String::from("reward!"))?;
         let new_block = utxo_set.blockchain.mine_block(vec![cbtx, tx])?;
 
         utxo_set.update(&new_block)?;
     } else {
         // Forward to miner node.
-        Server::send_transaction(&t, utxo_set)?;
+        Server::send_transaction(&tx, utxo_set)?;
     }
 
     println!("success!");
