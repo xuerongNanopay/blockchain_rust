@@ -45,19 +45,8 @@ impl Transaction {
     // 5. create TXInput to unlock coin from previous TXOutput
     // 6. create TXOutput to forward coin to `to` address
     // 7. return the remaining balance to 'from' address.
-    pub fn new_UTXO(from: &str, to: &str, amount: i32, txSet: &UTXOSet) -> Result<Transaction> {
+    pub fn new_UTXO(wallet: &Wallet, to: &str, amount: i32, txSet: &UTXOSet) -> Result<Transaction> {
         let mut vin = Vec::new();
-
-        let wallets = Wallets::new()?;
-        let wallet = match wallets.get_wallet(from) {
-            Some(w) => w,
-            None => anyhow::bail!("from wallet not found"),
-        };
-
-        //INVE: do we need to verify receiver address?
-        if let None = wallets.get_wallet(to) {
-            anyhow::bail!("to wallet not found")
-        }
 
         let mut pub_key_hash = wallet.public_key.clone();
         Wallet::hash_pub_key(&mut pub_key_hash);
@@ -84,7 +73,7 @@ impl Transaction {
         let mut vout = vec![TXOutput::new(amount, String::from(to))?];
 
         if acc_v.0 > amount {
-            vout.push(TXOutput::new(acc_v.0 - amount, String::from(from))?)
+            vout.push(TXOutput::new(acc_v.0 - amount, wallet.get_address())?)
         }
 
         let mut tx = Transaction {

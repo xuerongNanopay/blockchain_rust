@@ -69,6 +69,39 @@ impl Blockchain {
     //     Ok(new_block)
     // }
 
+    pub fn get_block(&self, block_hash: &str) -> Result<Block> {
+        let data = self.db.get(block_hash)?.unwrap();
+        let block = bincode::deserialize(&data.to_vec())?;
+        Ok(block)
+    }
+
+    // Return all block hash.
+    pub fn get_block_hashs(&self) -> Vec<String> {
+        let mut list = Vec::new();
+        for b in self.iter() {
+            list.push(b.get_hash());
+        }
+        list
+    }
+
+    // block suppose to be the last/newest block
+    pub fn add_block(&mut self, block: Block) -> Result<()> {
+        let data = bincode::serialize(&block)?;
+        if let Some(_) = self.db.get(block.get_hash())? {
+            return Ok(());
+        }
+        self.db.insert(block.get_hash(), data)?;
+
+        let lastheight = self.get_best_height()?;
+        if block.get_height() > lastheight {
+            self.db.insert("LAST", block.get_hash().as_bytes())?;
+            self.current_hash = block.get_hash();
+            self.db.flush()?;
+        }
+
+        Ok(())
+    }
+
     pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<Block> {
         info!("mine a new block");
 
@@ -89,9 +122,12 @@ impl Blockchain {
         self.db.insert(newblock.get_hash(), bincode::serialize(&newblock)?)?;
         self.db.insert("LAST", newblock.get_hash().as_bytes())?;
         self.db.flush()?;
+
+        self.current_hash = newblock.get_hash();
+        Ok(newblock)
     }
 
-    pub fn get_best_height(&self) -> Result<usize> {
+    pub fn get_best_height(&self) -> Result<i32> {
         let lasthash = if let Some(h) = self.db.get("LAST")? {
             h
         } else {

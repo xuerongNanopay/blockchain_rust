@@ -46,6 +46,12 @@ impl Server {
         })
     }
 
+    pub fn send_transaction(tx: &Transaction, utxoset: UTXOSet) -> Result<()> {
+        let server = Server::new("7000", "", utxoset)?;
+        server.send_tx(KNOWN_NODE1, tx)?;
+        OK(())
+    }
+
     pub fn start_server(&self) -> Result<()> {
         let server1 = Server {
             node_address: self.node_address.clone(),
@@ -227,6 +233,19 @@ impl Server {
             self.utxo_reindex()?;
         }
         Ok(())
+    }
+
+    fn add_block(&self, block: Block) -> Result<()> {
+        self.inner.lock().unwrap().utxo.blockchain.add_block(block)
+    }
+
+    fn get_block(&self, block_hash: &str) -> Result<Block> {
+        self.inner
+            .lock()
+            .unwrap()
+            .utxo
+            .blockchain
+            .get_block(block_hash)
     }
 
     fn handle_get_blocks(&self, msg: GetBlockmsg) -> Result<()> {
